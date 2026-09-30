@@ -1,0 +1,4 @@
+video/build/
+__pycache__/
+*.onnx
+voices-*.bin

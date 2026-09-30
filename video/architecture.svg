@@ -1,0 +1,30 @@
+<svg viewBox="0 0 960 330" xmlns="http://www.w3.org/2000/svg" font-family="DejaVu Sans, sans-serif" font-size="14" role="img" aria-label="Architecture diagram">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#52514e"/></marker></defs>
+  <g fill="#fff" stroke="#2a78d6" stroke-width="2">
+    <rect x="10" y="40" width="150" height="70" rx="8"/><rect x="10" y="150" width="150" height="70" rx="8"/>
+  </g>
+  <g fill="#fff" stroke="#eb6834" stroke-width="2">
+    <rect x="220" y="95" width="150" height="70" rx="8"/><rect x="410" y="95" width="150" height="70" rx="8"/>
+  </g>
+  <g fill="#fff" stroke="#1baf7a" stroke-width="2">
+    <rect x="600" y="95" width="150" height="70" rx="8"/><rect x="790" y="40" width="160" height="70" rx="8"/><rect x="790" y="150" width="160" height="70" rx="8"/>
+  </g>
+  <g text-anchor="middle" fill="#0b0b0b" font-weight="bold">
+    <text x="85" y="70">Task spec</text><text x="85" y="180">Dataset</text>
+    <text x="295" y="125">Model adapter</text><text x="485" y="125">Runner</text>
+    <text x="675" y="125">Scorer(s)</text><text x="870" y="70">Aggregator</text><text x="870" y="180">Reports &amp; gates</text>
+  </g>
+  <g text-anchor="middle" fill="#52514e" font-size="11">
+    <text x="85" y="90">prompt, params, metrics</text><text x="85" y="200">versioned items + slices</text>
+    <text x="295" y="145">model / RAG / agent</text><text x="485" y="145">concurrency, cache, retry</text>
+    <text x="675" y="145">code · reference · judge</text><text x="870" y="90">CIs, paired tests</text><text x="870" y="200">dashboards, CI gates</text>
+  </g>
+  <g stroke="#52514e" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+    <path d="M160,75 L220,120"/><path d="M160,185 L220,140"/><path d="M370,130 L410,130"/><path d="M560,130 L600,130"/>
+    <path d="M750,120 L790,80"/><path d="M870,110 L870,150"/>
+  </g>
+  <rect x="10" y="260" width="940" height="52" rx="8" fill="#f1f0ec" stroke="#c9c8c2"/>
+  <text x="480" y="283" text-anchor="middle" fill="#0b0b0b" font-weight="bold">Run record (content-addressed)</text>
+  <text x="480" y="302" text-anchor="middle" fill="#52514e" font-size="12">hash(task, dataset version, prompt template, model id + params, scorer version, seed) → raw outputs, scores, costs, latencies</text>
+  <g stroke="#c9c8c2" stroke-dasharray="4 4"><path d="M85,220 V260"/><path d="M485,165 V260"/><path d="M675,165 V260"/><path d="M870,220 V260"/></g>
+</svg>

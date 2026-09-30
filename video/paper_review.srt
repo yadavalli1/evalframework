@@ -1,0 +1,339 @@
+1
+00:00:00,600 --> 00:00:01,145
+Welcome.
+
+2
+00:00:01,145 --> 00:00:08,850
+In this video we review the report, Building an LLM Evaluation Framework: Architecture, Statistics, and Practice.
+
+3
+00:00:08,850 --> 00:00:14,101
+It's a design guide for teams who want eval numbers they can actually act on.
+
+4
+00:00:14,101 --> 00:00:26,306
+We'll walk through the architecture it proposes, the statistics it argues should be built in, how it treats LLM judges, and then give our own assessment of its strengths and gaps.
+
+5
+00:00:27,806 --> 00:00:30,649
+The paper starts from a simple observation.
+
+6
+00:00:30,649 --> 00:00:35,013
+Classical machine learning had a held-out test set and one metric.
+
+7
+00:00:35,013 --> 00:00:36,996
+LLMs break that in three ways.
+
+8
+00:00:36,996 --> 00:00:41,426
+Outputs are open-ended, so correctness is often not a string match.
+
+9
+00:00:41,426 --> 00:00:44,136
+The same model serves thousands of tasks.
+
+10
+00:00:44,136 --> 00:00:47,905
+And what we ship is usually a pipeline, not a bare model.
+
+11
+00:00:47,905 --> 00:00:57,161
+Meanwhile, most internal evals are ad-hoc scripts with no error bars, graders nobody validated, and data that may have leaked into training.
+
+12
+00:00:58,661 --> 00:01:02,885
+From those failure modes, the authors derive seven requirements.
+
+13
+00:01:02,885 --> 00:01:06,515
+Results must be reproducible, and statistically honest.
+
+14
+00:01:06,515 --> 00:01:12,852
+The framework should be composable, and any model-based grader must be validated against humans.
+
+15
+00:01:12,852 --> 00:01:17,340
+Results need to be sliceable, so an average can't hide a regression.
+
+16
+00:01:17,340 --> 00:01:20,377
+The system under test can be a whole pipeline.
+
+17
+00:01:20,377 --> 00:01:23,941
+And evals must be cheap enough to run on every change.
+
+18
+00:01:25,441 --> 00:01:29,513
+Here is the core of the paper: a seven-part architecture.
+
+19
+00:01:29,513 --> 00:01:37,799
+In blue is what gets evaluated: a declarative task spec and a versioned dataset with slice metadata and cluster IDs.
+
+20
+00:01:37,799 --> 00:01:48,729
+In orange is how it runs: a model adapter that can wrap a model, a RAG system, or an agent, and a runner with concurrency, retries, and a response cache.
+
+21
+00:01:48,729 --> 00:01:55,158
+In green is how it's judged: scorers, a statistical aggregator, and reports with CI gates.
+
+22
+00:01:55,158 --> 00:01:59,158
+Underneath everything is a content-addressed run record.
+
+23
+00:01:59,158 --> 00:02:07,873
+Hash the task, data, prompt, model, parameters, scorer, and seed, and two runs with the same hash are the same experiment.
+
+24
+00:02:07,873 --> 00:02:12,731
+That single design choice is what makes every past number auditable.
+
+25
+00:02:14,231 --> 00:02:17,380
+For scoring, the paper ranks four families.
+
+26
+00:02:17,380 --> 00:02:23,385
+Programmatic checks come first: exact match, regex, schema validation, unit tests.
+
+27
+00:02:23,385 --> 00:02:25,728
+They're deterministic and cheap.
+
+28
+00:02:25,728 --> 00:02:31,587
+Reference similarity metrics like BLEU and ROUGE are useful mainly as tripwires.
+
+29
+00:02:31,587 --> 00:02:38,178
+LLM judges are flexible, but the paper insists they're instruments that must be validated.
+
+30
+00:02:38,178 --> 00:02:43,230
+And human review is the ground truth that calibrates everything else.
+
+31
+00:02:43,230 --> 00:02:46,746
+The guiding principle is: decompose, then check.
+
+32
+00:02:46,746 --> 00:02:52,091
+Break a fuzzy notion of quality into criteria you can check individually.
+
+33
+00:02:53,592 --> 00:02:57,682
+The statistics section is where the paper is most valuable.
+
+34
+00:02:57,682 --> 00:03:01,010
+Every score is an estimate from a finite sample.
+
+35
+00:03:01,010 --> 00:03:10,786
+On the left: at seventy percent accuracy, a one-hundred-item eval has a ninety-five percent confidence interval of plus or minus nine points.
+
+36
+00:03:10,786 --> 00:03:14,322
+You need about a thousand items to get under three.
+
+37
+00:03:14,322 --> 00:03:17,858
+On the right is the fix for comparisons: pair them.
+
+38
+00:03:17,858 --> 00:03:22,711
+Score both systems on the same items and analyze per-item differences.
+
+39
+00:03:22,711 --> 00:03:32,695
+At a thousand items, the smallest detectable difference drops from five point seven points to four point one when the correlation is point five.
+
+40
+00:03:32,695 --> 00:03:38,727
+That's the same as halving the sample size you need, and it costs nothing to implement.
+
+41
+00:03:40,227 --> 00:03:42,183
+Two more statistical points.
+
+42
+00:03:42,183 --> 00:03:47,212
+First, items are often clustered, like ten questions about one document.
+
+43
+00:03:47,212 --> 00:03:57,481
+With ten items per cluster and a modest intra-cluster correlation of point two, the real standard error is one point six seven times the naive one.
+
+44
+00:03:57,481 --> 00:04:03,000
+So your ninety-five percent interval actually covers about seventy-six percent.
+
+45
+00:04:03,000 --> 00:04:08,030
+The fix is just to store a cluster ID and compute cluster-robust errors.
+
+46
+00:04:08,030 --> 00:04:11,872
+Second, do power analysis before you build the dataset.
+
+47
+00:04:11,872 --> 00:04:19,346
+Start from the smallest difference that would change your decision, and derive the number of items from it.
+
+48
+00:04:20,846 --> 00:04:24,139
+The most memorable result concerns LLM judges.
+
+49
+00:04:24,139 --> 00:04:36,453
+If a judge agrees with ground truth with probability a, and errors are symmetric, the measured difference between two systems is two a minus one, times the true difference.
+
+50
+00:04:36,453 --> 00:04:39,818
+The paper checks this with a seeded simulation.
+
+51
+00:04:39,818 --> 00:04:50,485
+A judge with eighty percent agreement turns a real five-point improvement into about three points, and across replicate runs the range includes zero.
+
+52
+00:04:50,485 --> 00:04:55,639
+So the improvement is no longer reliably detectable at a thousand items.
+
+53
+00:04:55,639 --> 00:04:59,219
+Judge quality trades directly against sample size.
+
+54
+00:05:00,719 --> 00:05:03,726
+So the paper gives a calibration protocol.
+
+55
+00:05:03,726 --> 00:05:07,164
+Build a gold set of a few hundred expert labels.
+
+56
+00:05:07,164 --> 00:05:17,261
+Measure agreement with accuracy, Cohen's kappa, and a confusion matrix, which tells you whether errors are symmetric noise or one-sided bias.
+
+57
+00:05:17,261 --> 00:05:24,637
+Test for position bias by swapping answer order, and for verbosity bias by regressing scores on length.
+
+58
+00:05:24,637 --> 00:05:33,588
+Mitigate with both orderings, simple binary rubrics, reasoning before the verdict, and a judge from a different model family.
+
+59
+00:05:33,588 --> 00:05:36,596
+And re-validate whenever anything changes.
+
+60
+00:05:38,096 --> 00:05:40,751
+The paper then covers data integrity.
+
+61
+00:05:40,751 --> 00:05:51,730
+Public benchmarks may be in training data, so keep private held-out sets, embed canary strings, use statistical contamination tests, and add fresh items.
+
+62
+00:05:51,730 --> 00:05:59,839
+For RAG, it recommends scoring retrieval, grounding, and answer quality separately, so you can localize failures.
+
+63
+00:05:59,839 --> 00:06:12,756
+For agents: sandboxed, resettable environments, scoring the final state rather than the transcript, repeated trials reported as both pass at k and pass hat k, and cost per success.
+
+64
+00:06:14,256 --> 00:06:24,408
+Operationally, the paper recommends three tiers: a smoke tier on every commit, a regression tier on every merge, and a full tier with human review before release.
+
+65
+00:06:24,408 --> 00:06:27,855
+Gates should be statistical tests, not raw comparisons.
+
+66
+00:06:27,855 --> 00:06:32,743
+A rule like 'the score must not drop' fires on pure noise about half the time.
+
+67
+00:06:32,743 --> 00:06:39,072
+Instead, fail only if the lower confidence bound of the paired difference falls below your threshold.
+
+68
+00:06:39,072 --> 00:06:43,333
+Close the loop with production traffic, and always read transcripts.
+
+69
+00:06:44,834 --> 00:06:46,124
+Now our assessment.
+
+70
+00:06:46,124 --> 00:06:54,414
+The main strength is that the paper treats evaluation as measurement, and backs that up with numbers anyone can reproduce.
+
+71
+00:06:54,414 --> 00:07:02,499
+The architecture's separation of concerns is clean, and the content-addressed run record is a genuinely practical idea.
+
+72
+00:07:02,499 --> 00:07:06,033
+The task spec and checklist can be adopted directly.
+
+73
+00:07:06,033 --> 00:07:14,798
+On the other side, there are no experiments with real models or real judges, so the calibration protocol is untested in practice.
+
+74
+00:07:14,798 --> 00:07:20,097
+The judge analysis assumes symmetric noise, while real judges are also biased.
+
+75
+00:07:20,097 --> 00:07:23,562
+The power formulas are large-sample approximations.
+
+76
+00:07:23,562 --> 00:07:27,639
+And the architecture is a design, not yet an implementation.
+
+77
+00:07:27,639 --> 00:07:33,958
+A reference implementation, with a case study on a real task, would be the natural next step.
+
+78
+00:07:35,458 --> 00:07:37,239
+To wrap up, five takeaways.
+
+79
+00:07:37,239 --> 00:07:41,526
+A hundred-item eval can't see differences under about ten points.
+
+80
+00:07:41,526 --> 00:07:44,494
+Compare systems with paired tests by default.
+
+81
+00:07:44,494 --> 00:07:47,660
+Store cluster IDs and use cluster-robust errors.
+
+82
+00:07:47,660 --> 00:07:53,398
+Calibrate your judges, because an eighty percent judge can hide a real five-point gain.
+
+83
+00:07:53,398 --> 00:07:58,015
+And hash everything into a run record so every number is reproducible.
+
+84
+00:07:58,015 --> 00:08:03,622
+The paper, its figures, and the scripts that generate them are all in the repository.
+
+85
+00:08:03,622 --> 00:08:04,941
+Thanks for watching.
